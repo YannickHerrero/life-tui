@@ -1,6 +1,6 @@
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Position, Rect};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Sparkline};
@@ -52,13 +52,17 @@ pub fn grid_size_for(area: Rect) -> (usize, usize) {
     (area.width as usize, (area.height as usize) * 2)
 }
 
-pub fn render_grid(frame: &mut Frame, area: Rect, grid: &Grid) {
+pub fn render_grid(
+    frame: &mut Frame,
+    area: Rect,
+    grid: &Grid,
+    cursor: Option<(usize, usize)>,
+) {
     let buf = frame.buffer_mut();
-    draw_grid(buf, area, grid);
+    draw_grid(buf, area, grid, cursor);
 }
 
-fn draw_grid(buf: &mut Buffer, area: Rect, grid: &Grid) {
-    let style = Style::default();
+fn draw_grid(buf: &mut Buffer, area: Rect, grid: &Grid, cursor: Option<(usize, usize)>) {
     let cols = area.width.min(grid.width() as u16);
     let rows = area.height.min((grid.height() / 2) as u16);
 
@@ -73,12 +77,32 @@ fn draw_grid(buf: &mut Buffer, area: Rect, grid: &Grid) {
             } else {
                 false
             };
-            let glyph = match (top, bot) {
+
+            let cursor_top = matches!(cursor, Some((cx, cy)) if cx == x && cy == gy_top);
+            let cursor_bot = matches!(cursor, Some((cx, cy)) if cx == x && cy == gy_bot);
+
+            // The cursor's half flips its state and the whole terminal cell is
+            // REVERSED, so every up/down step moves a visible half-block — the
+            // cursor's half always inverts relative to a non-cursor cell.
+            let (top_disp, bot_disp, reversed) = if cursor_top {
+                (!top, bot, true)
+            } else if cursor_bot {
+                (top, !bot, true)
+            } else {
+                (top, bot, false)
+            };
+            let glyph = match (top_disp, bot_disp) {
                 (false, false) => ' ',
                 (true, false) => '▀',
                 (false, true) => '▄',
                 (true, true) => '█',
             };
+            let style = if reversed {
+                Style::default().add_modifier(Modifier::REVERSED)
+            } else {
+                Style::default()
+            };
+
             if let Some(cell) = buf.cell_mut((area.x + tx, area.y + ty)) {
                 cell.set_char(glyph).set_style(style);
             }
@@ -214,17 +238,6 @@ pub fn render_footer(frame: &mut Frame, area: Rect, app: &App) {
     );
 }
 
-/// Set the terminal cursor for the edit phase, mapped from cell coords to terminal cell.
-pub fn place_edit_cursor(frame: &mut Frame, grid_area: Rect, app: &App) {
-    if app.phase != Phase::Edit || app.show_help {
-        return;
-    }
-    let cx = grid_area.x + app.cursor_x as u16;
-    let cy = grid_area.y + (app.cursor_y / 2) as u16;
-    if cx < grid_area.x + grid_area.width && cy < grid_area.y + grid_area.height {
-        frame.set_cursor_position(Position { x: cx, y: cy });
-    }
-}
 
 const HELP_LINES: &[(&str, &str)] = &[
     ("EDIT", ""),

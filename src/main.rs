@@ -79,12 +79,16 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
                 centered = true;
             }
 
-            ui::render_grid(frame, layouts.grid, &app.grid);
+            let cursor = if app.phase == Phase::Edit && !app.show_help {
+                Some((app.cursor_x, app.cursor_y))
+            } else {
+                None
+            };
+            ui::render_grid(frame, layouts.grid, &app.grid, cursor);
             if let Some(panel) = layouts.panel {
                 ui::render_panel(frame, panel, &app);
             }
             ui::render_footer(frame, layouts.footer, &app);
-            ui::place_edit_cursor(frame, layouts.grid, &app);
 
             if app.show_help {
                 ui::render_help_overlay(frame, frame.area());
