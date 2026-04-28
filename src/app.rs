@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
 use crate::grid::{Grid, StepStats};
@@ -6,6 +7,7 @@ use crate::phase::Phase;
 pub const MIN_SPEED: u32 = 1;
 pub const MAX_SPEED: u32 = 60;
 pub const DEFAULT_SPEED: u32 = 10;
+pub const HISTORY_LEN: usize = 240;
 
 pub struct App {
     pub grid: Grid,
@@ -16,6 +18,7 @@ pub struct App {
     pub last_step: StepStats,
     pub speed: u32,
     pub paused: bool,
+    pub population_history: VecDeque<u64>,
     last_tick: Instant,
     quit: bool,
 }
@@ -31,6 +34,7 @@ impl App {
             last_step: StepStats::default(),
             speed: DEFAULT_SPEED,
             paused: false,
+            population_history: VecDeque::with_capacity(HISTORY_LEN),
             last_tick: Instant::now(),
             quit: false,
         }
@@ -72,6 +76,15 @@ impl App {
         self.last_step = StepStats::default();
         self.paused = false;
         self.last_tick = Instant::now();
+        self.population_history.clear();
+        self.record_population();
+    }
+
+    fn record_population(&mut self) {
+        if self.population_history.len() == HISTORY_LEN {
+            self.population_history.pop_front();
+        }
+        self.population_history.push_back(self.grid.living() as u64);
     }
 
     pub fn back_to_edit(&mut self) {
@@ -91,6 +104,7 @@ impl App {
     pub fn step_once(&mut self) {
         self.last_step = self.grid.step();
         self.generation += 1;
+        self.record_population();
     }
 
     pub fn faster(&mut self) {

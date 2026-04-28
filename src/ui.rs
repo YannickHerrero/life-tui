@@ -3,7 +3,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Position, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Sparkline};
 
 use crate::app::App;
 use crate::grid::Grid;
@@ -95,6 +95,18 @@ pub fn render_panel(frame: &mut Frame, area: Rect, app: &App) {
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
+    let split = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(8), Constraint::Length(6)])
+        .split(inner);
+
+    render_stats_text(frame, split[0], app);
+    if app.phase == Phase::Run {
+        render_population_sparkline(frame, split[1], app);
+    }
+}
+
+fn render_stats_text(frame: &mut Frame, area: Rect, app: &App) {
     let dim = Style::default().add_modifier(Modifier::DIM);
     let bold = Style::default().add_modifier(Modifier::BOLD);
 
@@ -143,7 +155,37 @@ pub fn render_panel(frame: &mut Frame, area: Rect, app: &App) {
         ]));
     }
 
-    frame.render_widget(Paragraph::new(lines), inner);
+    frame.render_widget(Paragraph::new(lines), area);
+}
+
+fn render_population_sparkline(frame: &mut Frame, area: Rect, app: &App) {
+    if area.height < 3 {
+        return;
+    }
+    let dim = Style::default().add_modifier(Modifier::DIM);
+    let label_area = Rect {
+        x: area.x,
+        y: area.y,
+        width: area.width,
+        height: 1,
+    };
+    let chart_area = Rect {
+        x: area.x,
+        y: area.y + 1,
+        width: area.width,
+        height: area.height - 1,
+    };
+
+    frame.render_widget(
+        Paragraph::new("population").style(dim),
+        label_area,
+    );
+
+    let data: Vec<u64> = app.population_history.iter().copied().collect();
+    let sparkline = Sparkline::default()
+        .data(&data)
+        .style(Style::default());
+    frame.render_widget(sparkline, chart_area);
 }
 
 pub fn render_footer(frame: &mut Frame, area: Rect, app: &App) {
