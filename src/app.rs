@@ -22,6 +22,7 @@ pub struct App {
     pub speed: u32,
     pub paused: bool,
     pub population_history: VecDeque<u64>,
+    pub paint_state: Option<bool>,
     last_tick: Instant,
     quit: bool,
 }
@@ -38,6 +39,7 @@ impl App {
             speed: DEFAULT_SPEED,
             paused: false,
             population_history: VecDeque::with_capacity(HISTORY_LEN),
+            paint_state: None,
             last_tick: Instant::now(),
             quit: false,
         }

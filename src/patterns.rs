@@ -1,26 +1,22 @@
 pub struct Pattern {
-    pub name: &'static str,
     pub width: i32,
     pub height: i32,
     pub cells: &'static [(i32, i32)],
 }
 
 pub const GLIDER: Pattern = Pattern {
-    name: "glider",
     width: 3,
     height: 3,
     cells: &[(1, 0), (2, 1), (0, 2), (1, 2), (2, 2)],
 };
 
 pub const BLINKER: Pattern = Pattern {
-    name: "blinker",
     width: 3,
     height: 1,
     cells: &[(0, 0), (1, 0), (2, 0)],
 };
 
 pub const LWSS: Pattern = Pattern {
-    name: "LWSS",
     width: 5,
     height: 4,
     cells: &[
@@ -37,7 +33,6 @@ pub const LWSS: Pattern = Pattern {
 };
 
 pub const PULSAR: Pattern = Pattern {
-    name: "pulsar",
     width: 13,
     height: 13,
     cells: &[
@@ -55,7 +50,6 @@ pub const PULSAR: Pattern = Pattern {
 };
 
 pub const GOSPER_GLIDER_GUN: Pattern = Pattern {
-    name: "Gosper glider gun",
     width: 36,
     height: 9,
     cells: &[
