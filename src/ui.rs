@@ -3,7 +3,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Position, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Sparkline};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Sparkline};
 
 use crate::app::App;
 use crate::grid::Grid;
@@ -201,11 +201,11 @@ pub fn render_footer(frame: &mut Frame, area: Rect, app: &App) {
     }
     let text = match app.phase {
         Phase::Edit => {
-            " hjkl move · space toggle · 1-5 stamp · r rand · c clear · w save · L load · enter run · q "
+            " hjkl move · space toggle · 1-5 stamp · r rand · c clear · w/L save·load · enter run · ? help "
         }
         Phase::Run => match app.paused {
-            true => " space resume · s step · +/- speed · e edit · q quit ",
-            false => " space pause · +/- speed · e edit · q quit ",
+            true => " space resume · s step · +/- speed · e edit · ? help · q quit ",
+            false => " space pause · +/- speed · e edit · ? help · q quit ",
         },
     };
     frame.render_widget(
@@ -216,12 +216,101 @@ pub fn render_footer(frame: &mut Frame, area: Rect, app: &App) {
 
 /// Set the terminal cursor for the edit phase, mapped from cell coords to terminal cell.
 pub fn place_edit_cursor(frame: &mut Frame, grid_area: Rect, app: &App) {
-    if app.phase != Phase::Edit {
+    if app.phase != Phase::Edit || app.show_help {
         return;
     }
     let cx = grid_area.x + app.cursor_x as u16;
     let cy = grid_area.y + (app.cursor_y / 2) as u16;
     if cx < grid_area.x + grid_area.width && cy < grid_area.y + grid_area.height {
         frame.set_cursor_position(Position { x: cx, y: cy });
+    }
+}
+
+const HELP_LINES: &[(&str, &str)] = &[
+    ("EDIT", ""),
+    ("  arrows / hjkl", "move cursor"),
+    ("  space", "toggle cell at cursor"),
+    ("  mouse click + drag", "paint cells"),
+    ("  1", "stamp glider"),
+    ("  2", "stamp blinker"),
+    ("  3", "stamp pulsar"),
+    ("  4", "stamp Gosper glider gun"),
+    ("  5", "stamp LWSS"),
+    ("  r", "random fill (25%)"),
+    ("  c", "clear grid"),
+    ("  w", "save pattern (RLE)"),
+    ("  L", "load most recent save"),
+    ("  enter", "start running"),
+    ("", ""),
+    ("RUN", ""),
+    ("  space", "pause / resume"),
+    ("  s", "step one generation (paused)"),
+    ("  + / -", "speed ± 1 gen/s"),
+    ("  e", "return to edit"),
+    ("", ""),
+    ("GLOBAL", ""),
+    ("  ?", "toggle this help"),
+    ("  q / esc", "quit"),
+];
+
+pub fn render_help_overlay(frame: &mut Frame, area: Rect) {
+    let popup = centered_rect(54, 30, area);
+    if popup.width < 30 || popup.height < 8 {
+        return;
+    }
+    frame.render_widget(Clear, popup);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(" help ")
+        .title_alignment(Alignment::Center);
+    let inner = block.inner(popup);
+    frame.render_widget(block, popup);
+
+    let dim = Style::default().add_modifier(Modifier::DIM);
+    let bold = Style::default().add_modifier(Modifier::BOLD);
+
+    let lines: Vec<Line> = HELP_LINES
+        .iter()
+        .map(|(left, right)| {
+            if right.is_empty() && !left.is_empty() {
+                Line::from(Span::styled(*left, bold))
+            } else if left.is_empty() {
+                Line::raw("")
+            } else {
+                let pad = " ".repeat(28usize.saturating_sub(left.len()));
+                Line::from(vec![
+                    Span::raw(*left),
+                    Span::raw(pad),
+                    Span::styled(*right, dim),
+                ])
+            }
+        })
+        .collect();
+
+    let mut all_lines = lines;
+    all_lines.push(Line::raw(""));
+    all_lines.push(Line::from(Span::styled(
+        "press any key to dismiss",
+        dim,
+    )));
+
+    frame.render_widget(
+        Paragraph::new(all_lines).alignment(Alignment::Left),
+        inner,
+    );
+}
+
+fn centered_rect(width: u16, height: u16, area: Rect) -> Rect {
+    let w = width.min(area.width);
+    let h = height.min(area.height);
+    let x = area.x + (area.width.saturating_sub(w)) / 2;
+    let y = area.y + (area.height.saturating_sub(h)) / 2;
+    Rect {
+        x,
+        y,
+        width: w,
+        height: h,
     }
 }

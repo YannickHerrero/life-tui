@@ -29,6 +29,7 @@ pub struct App {
     pub population_history: VecDeque<u64>,
     pub paint_state: Option<bool>,
     pub toast: Option<(String, Instant)>,
+    pub show_help: bool,
     last_tick: Instant,
     quit: bool,
 }
@@ -47,6 +48,7 @@ impl App {
             population_history: VecDeque::with_capacity(HISTORY_LEN),
             paint_state: None,
             toast: None,
+            show_help: false,
             last_tick: Instant::now(),
             quit: false,
         }
@@ -176,6 +178,14 @@ impl App {
             self.last_tick += period;
             steps += 1;
         }
+    }
+
+    pub fn toggle_help(&mut self) {
+        self.show_help = !self.show_help;
+    }
+
+    pub fn close_help(&mut self) {
+        self.show_help = false;
     }
 
     pub fn current_toast(&self) -> Option<&str> {

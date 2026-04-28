@@ -85,6 +85,10 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
             }
             ui::render_footer(frame, layouts.footer, &app);
             ui::place_edit_cursor(frame, layouts.grid, &app);
+
+            if app.show_help {
+                ui::render_help_overlay(frame, frame.area());
+            }
         })?;
 
         let poll_for = app
@@ -107,6 +111,17 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
 }
 
 fn handle_key(app: &mut App, code: KeyCode) {
+    if app.show_help {
+        match code {
+            KeyCode::Char('q') | KeyCode::Esc => app.quit(),
+            _ => app.close_help(),
+        }
+        return;
+    }
+    if matches!(code, KeyCode::Char('?')) {
+        app.toggle_help();
+        return;
+    }
     match (app.phase, code) {
                     (_, KeyCode::Esc | KeyCode::Char('q')) => app.quit(),
                     (Phase::Edit, KeyCode::Left | KeyCode::Char('h')) => app.move_cursor(-1, 0),
