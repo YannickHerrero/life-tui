@@ -81,15 +81,26 @@ fn draw_grid(buf: &mut Buffer, area: Rect, grid: &Grid, cursor: Option<(usize, u
             let cursor_top = matches!(cursor, Some((cx, cy)) if cx == x && cy == gy_top);
             let cursor_bot = matches!(cursor, Some((cx, cy)) if cx == x && cy == gy_bot);
 
-            // Render glyph so that fg paints one half and bg paints the other.
-            // For cursor cells, paint the cursor's half with Color::Yellow and
-            // keep the other half showing the actual cell state. This way every
-            // up/down step moves a visible half-block to the correct half.
+            // Cursor's half is painted distinctly from both cell colors:
+            // cyan when hovering a dead cell, magenta when hovering an alive
+            // cell. Other half preserves the actual cell state.
             let (glyph, style) = match (cursor_top, cursor_bot) {
-                (true, _) if bot => ('▄', Style::default().fg(Color::Reset).bg(Color::Yellow)),
-                (true, _) => ('▀', Style::default().fg(Color::Yellow).bg(Color::Reset)),
-                (_, true) if top => ('▀', Style::default().fg(Color::Reset).bg(Color::Yellow)),
-                (_, true) => ('▄', Style::default().fg(Color::Yellow).bg(Color::Reset)),
+                (true, _) => {
+                    let cur = if top { Color::Magenta } else { Color::Cyan };
+                    if bot {
+                        ('▄', Style::default().fg(Color::Reset).bg(cur))
+                    } else {
+                        ('▀', Style::default().fg(cur).bg(Color::Reset))
+                    }
+                }
+                (_, true) => {
+                    let cur = if bot { Color::Magenta } else { Color::Cyan };
+                    if top {
+                        ('▀', Style::default().fg(Color::Reset).bg(cur))
+                    } else {
+                        ('▄', Style::default().fg(cur).bg(Color::Reset))
+                    }
+                }
                 _ => {
                     let g = match (top, bot) {
                         (false, false) => ' ',
