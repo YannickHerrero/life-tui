@@ -87,7 +87,7 @@ impl App {
     }
 
     /// Stamp a pattern centered on the cursor (with toroidal wrap).
-    pub fn stamp_pattern(&mut self, pattern: &Pattern) {
+    pub fn stamp_pattern(&mut self, pattern: &Pattern, name: &str) {
         let w = self.grid.width() as i32;
         let h = self.grid.height() as i32;
         if w == 0 || h == 0 {
@@ -100,6 +100,7 @@ impl App {
             let y = (oy + dy).rem_euclid(h) as usize;
             self.grid.set(x, y, true);
         }
+        self.set_toast(format!("stamped {name}"));
     }
 
     pub fn random_fill(&mut self, density: f32) {

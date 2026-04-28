@@ -57,8 +57,12 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
 
     while !app.should_quit() {
         terminal.draw(|frame| {
+            let title = match app.phase {
+                Phase::Edit => " life-tui · edit ".to_string(),
+                Phase::Run => format!(" life-tui · run · gen {} ", app.generation),
+            };
             let outer = Block::default()
-                .title(format!(" life-tui — {} ", phase_label(app.phase)))
+                .title(title)
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded);
             let inner = outer.inner(frame.area());
@@ -112,13 +116,21 @@ fn handle_key(app: &mut App, code: KeyCode) {
                     (Phase::Edit, KeyCode::Char(' ')) => app.toggle_at_cursor(),
                     (Phase::Edit, KeyCode::Char('c')) => app.clear_grid(),
                     (Phase::Edit, KeyCode::Char('r')) => app.random_fill(0.25),
-                    (Phase::Edit, KeyCode::Char('1')) => app.stamp_pattern(&patterns::GLIDER),
-                    (Phase::Edit, KeyCode::Char('2')) => app.stamp_pattern(&patterns::BLINKER),
-                    (Phase::Edit, KeyCode::Char('3')) => app.stamp_pattern(&patterns::PULSAR),
-                    (Phase::Edit, KeyCode::Char('4')) => {
-                        app.stamp_pattern(&patterns::GOSPER_GLIDER_GUN)
+                    (Phase::Edit, KeyCode::Char('1')) => {
+                        app.stamp_pattern(&patterns::GLIDER, "glider")
                     }
-                    (Phase::Edit, KeyCode::Char('5')) => app.stamp_pattern(&patterns::LWSS),
+                    (Phase::Edit, KeyCode::Char('2')) => {
+                        app.stamp_pattern(&patterns::BLINKER, "blinker")
+                    }
+                    (Phase::Edit, KeyCode::Char('3')) => {
+                        app.stamp_pattern(&patterns::PULSAR, "pulsar")
+                    }
+                    (Phase::Edit, KeyCode::Char('4')) => {
+                        app.stamp_pattern(&patterns::GOSPER_GLIDER_GUN, "Gosper gun")
+                    }
+                    (Phase::Edit, KeyCode::Char('5')) => {
+                        app.stamp_pattern(&patterns::LWSS, "LWSS")
+                    }
                     (Phase::Edit, KeyCode::Char('w')) => app.save_pattern(),
                     (Phase::Edit, KeyCode::Char('L')) => app.load_latest_pattern(),
                     (Phase::Edit, KeyCode::Enter) => app.start_run(),
@@ -187,9 +199,3 @@ fn mouse_to_grid(grid_area: Rect, col: u16, row: u16) -> (usize, usize) {
     (x, y_term * 2)
 }
 
-fn phase_label(phase: Phase) -> &'static str {
-    match phase {
-        Phase::Edit => "edit",
-        Phase::Run => "run",
-    }
-}
