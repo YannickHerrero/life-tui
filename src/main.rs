@@ -70,7 +70,10 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
             }
         })?;
 
-        if event::poll(Duration::from_millis(50))? {
+        let poll_for = app
+            .time_until_next_tick()
+            .min(Duration::from_millis(50));
+        if event::poll(poll_for)? {
             if let Event::Key(key) = event::read()?
                 && key.kind == KeyEventKind::Press
             {
@@ -83,10 +86,20 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
                     (Phase::Edit, KeyCode::Char(' ')) => app.toggle_at_cursor(),
                     (Phase::Edit, KeyCode::Enter) => app.start_run(),
                     (Phase::Run, KeyCode::Char('e')) => app.back_to_edit(),
+                    (Phase::Run, KeyCode::Char(' ')) => app.toggle_pause(),
+                    (Phase::Run, KeyCode::Char('s')) => {
+                        if app.paused {
+                            app.step_once();
+                        }
+                    }
+                    (Phase::Run, KeyCode::Char('+') | KeyCode::Char('=')) => app.faster(),
+                    (Phase::Run, KeyCode::Char('-') | KeyCode::Char('_')) => app.slower(),
                     _ => {}
                 }
             }
         }
+
+        app.maybe_tick();
     }
 
     Ok(())

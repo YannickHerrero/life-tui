@@ -1,11 +1,22 @@
-use crate::grid::Grid;
+use std::time::{Duration, Instant};
+
+use crate::grid::{Grid, StepStats};
 use crate::phase::Phase;
+
+pub const MIN_SPEED: u32 = 1;
+pub const MAX_SPEED: u32 = 60;
+pub const DEFAULT_SPEED: u32 = 10;
 
 pub struct App {
     pub grid: Grid,
     pub phase: Phase,
     pub cursor_x: usize,
     pub cursor_y: usize,
+    pub generation: u64,
+    pub last_step: StepStats,
+    pub speed: u32,
+    pub paused: bool,
+    last_tick: Instant,
     quit: bool,
 }
 
@@ -16,6 +27,11 @@ impl App {
             phase: Phase::Edit,
             cursor_x: 0,
             cursor_y: 0,
+            generation: 0,
+            last_step: StepStats::default(),
+            speed: DEFAULT_SPEED,
+            paused: false,
+            last_tick: Instant::now(),
             quit: false,
         }
     }
@@ -52,6 +68,10 @@ impl App {
 
     pub fn start_run(&mut self) {
         self.phase = Phase::Run;
+        self.generation = 0;
+        self.last_step = StepStats::default();
+        self.paused = false;
+        self.last_tick = Instant::now();
     }
 
     pub fn back_to_edit(&mut self) {
@@ -61,5 +81,52 @@ impl App {
     pub fn center_cursor(&mut self) {
         self.cursor_x = self.grid.width() / 2;
         self.cursor_y = self.grid.height() / 2;
+    }
+
+    pub fn toggle_pause(&mut self) {
+        self.paused = !self.paused;
+        self.last_tick = Instant::now();
+    }
+
+    pub fn step_once(&mut self) {
+        self.last_step = self.grid.step();
+        self.generation += 1;
+    }
+
+    pub fn faster(&mut self) {
+        self.speed = (self.speed + 1).min(MAX_SPEED);
+    }
+
+    pub fn slower(&mut self) {
+        self.speed = self.speed.saturating_sub(1).max(MIN_SPEED);
+    }
+
+    fn tick_period(&self) -> Duration {
+        Duration::from_secs_f64(1.0 / self.speed as f64)
+    }
+
+    /// Advance the simulation if running, not paused, and the tick period elapsed.
+    /// Catches up by stepping multiple times if we fell behind, capped per call.
+    pub fn maybe_tick(&mut self) {
+        if self.phase != Phase::Run || self.paused {
+            return;
+        }
+        let period = self.tick_period();
+        let mut steps = 0;
+        while self.last_tick.elapsed() >= period && steps < 8 {
+            self.step_once();
+            self.last_tick += period;
+            steps += 1;
+        }
+    }
+
+    /// How long until the next tick should fire (used to size the event poll window).
+    pub fn time_until_next_tick(&self) -> Duration {
+        if self.phase != Phase::Run || self.paused {
+            return Duration::from_millis(50);
+        }
+        let period = self.tick_period();
+        let elapsed = self.last_tick.elapsed();
+        period.saturating_sub(elapsed)
     }
 }
