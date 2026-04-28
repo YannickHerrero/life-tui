@@ -13,6 +13,7 @@ use ratatui::widgets::{Block, Borders};
 
 mod app;
 mod grid;
+mod ui;
 
 use app::App;
 
@@ -39,13 +40,25 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Re
 
 fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
     let mut app = App::new();
+    let mut seeded = false;
 
     while !app.should_quit() {
         terminal.draw(|frame| {
-            let block = Block::default()
+            let outer = Block::default()
                 .title(" life-tui ")
                 .borders(Borders::ALL);
-            frame.render_widget(block, frame.area());
+            let inner = outer.inner(frame.area());
+            frame.render_widget(outer, frame.area());
+
+            let (gw, gh) = ui::grid_size_for(inner);
+            app.ensure_grid_size(gw, gh);
+
+            if !seeded {
+                app.seed_demo();
+                seeded = true;
+            }
+
+            ui::render_grid(frame, inner, &app.grid);
         })?;
 
         if event::poll(Duration::from_millis(50))? {
