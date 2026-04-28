@@ -19,6 +19,7 @@ mod app;
 mod grid;
 mod patterns;
 mod phase;
+mod rle;
 mod ui;
 
 use app::App;
