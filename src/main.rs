@@ -9,8 +9,7 @@ use crossterm::terminal::{
 };
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
-use ratatui::layout::Position;
-use ratatui::widgets::{Block, Borders};
+use ratatui::widgets::{Block, BorderType, Borders};
 
 mod app;
 mod grid;
@@ -49,11 +48,14 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
         terminal.draw(|frame| {
             let outer = Block::default()
                 .title(format!(" life-tui — {} ", phase_label(app.phase)))
-                .borders(Borders::ALL);
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded);
             let inner = outer.inner(frame.area());
             frame.render_widget(outer, frame.area());
 
-            let (gw, gh) = ui::grid_size_for(inner);
+            let layouts = ui::compute_layout(inner);
+
+            let (gw, gh) = ui::grid_size_for(layouts.grid);
             app.ensure_grid_size(gw, gh);
 
             if !centered {
@@ -61,13 +63,12 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
                 centered = true;
             }
 
-            ui::render_grid(frame, inner, &app.grid);
-
-            if app.phase == Phase::Edit {
-                let cx = inner.x + app.cursor_x as u16;
-                let cy = inner.y + (app.cursor_y / 2) as u16;
-                frame.set_cursor_position(Position { x: cx, y: cy });
+            ui::render_grid(frame, layouts.grid, &app.grid);
+            if let Some(panel) = layouts.panel {
+                ui::render_panel(frame, panel, &app);
             }
+            ui::render_footer(frame, layouts.footer, &app);
+            ui::place_edit_cursor(frame, layouts.grid, &app);
         })?;
 
         let poll_for = app
