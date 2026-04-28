@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use rand::Rng;
 
 use crate::grid::{Grid, StepStats};
+use crate::patterns::Pattern;
 use crate::phase::Phase;
 
 pub const MIN_SPEED: u32 = 1;
@@ -74,6 +75,22 @@ impl App {
 
     pub fn clear_grid(&mut self) {
         self.grid.clear();
+    }
+
+    /// Stamp a pattern centered on the cursor (with toroidal wrap).
+    pub fn stamp_pattern(&mut self, pattern: &Pattern) {
+        let w = self.grid.width() as i32;
+        let h = self.grid.height() as i32;
+        if w == 0 || h == 0 {
+            return;
+        }
+        let ox = self.cursor_x as i32 - pattern.width / 2;
+        let oy = self.cursor_y as i32 - pattern.height / 2;
+        for &(dx, dy) in pattern.cells {
+            let x = (ox + dx).rem_euclid(w) as usize;
+            let y = (oy + dy).rem_euclid(h) as usize;
+            self.grid.set(x, y, true);
+        }
     }
 
     pub fn random_fill(&mut self, density: f32) {

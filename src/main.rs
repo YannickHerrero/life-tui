@@ -13,6 +13,7 @@ use ratatui::widgets::{Block, BorderType, Borders};
 
 mod app;
 mod grid;
+mod patterns;
 mod phase;
 mod ui;
 
@@ -87,6 +88,13 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
                     (Phase::Edit, KeyCode::Char(' ')) => app.toggle_at_cursor(),
                     (Phase::Edit, KeyCode::Char('c')) => app.clear_grid(),
                     (Phase::Edit, KeyCode::Char('r')) => app.random_fill(0.25),
+                    (Phase::Edit, KeyCode::Char('1')) => app.stamp_pattern(&patterns::GLIDER),
+                    (Phase::Edit, KeyCode::Char('2')) => app.stamp_pattern(&patterns::BLINKER),
+                    (Phase::Edit, KeyCode::Char('3')) => app.stamp_pattern(&patterns::PULSAR),
+                    (Phase::Edit, KeyCode::Char('4')) => {
+                        app.stamp_pattern(&patterns::GOSPER_GLIDER_GUN)
+                    }
+                    (Phase::Edit, KeyCode::Char('5')) => app.stamp_pattern(&patterns::LWSS),
                     (Phase::Edit, KeyCode::Enter) => app.start_run(),
                     (Phase::Run, KeyCode::Char('e')) => app.back_to_edit(),
                     (Phase::Run, KeyCode::Char(' ')) => app.toggle_pause(),

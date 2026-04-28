@@ -192,7 +192,7 @@ pub fn render_footer(frame: &mut Frame, area: Rect, app: &App) {
     let dim = Style::default().add_modifier(Modifier::DIM);
     let text = match app.phase {
         Phase::Edit => {
-            " hjkl move · space toggle · r random · c clear · enter → run · q quit "
+            " hjkl move · space toggle · 1-5 patterns · r rand · c clear · enter → run · q "
         }
         Phase::Run => match app.paused {
             true => " space resume · s step · +/- speed · e edit · q quit ",
