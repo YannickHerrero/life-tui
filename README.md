@@ -44,14 +44,14 @@ a two-phase workflow: design your seed, then watch it evolve.
 You need a recent Rust toolchain (edition 2024, currently `cargo` 1.85+).
 
 ```sh
-cargo install --git <repo-url> life-tui
+cargo install --git https://github.com/YannickHerrero/life-tui life-tui
 ```
 
 This drops a `life-tui` binary into `~/.cargo/bin/` (make sure that's on
 your `PATH`). To run from a clone instead:
 
 ```sh
-git clone <repo-url>
+git clone https://github.com/YannickHerrero/life-tui
 cd life-tui
 cargo run --release
 ```
