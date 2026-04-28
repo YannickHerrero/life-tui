@@ -14,7 +14,7 @@ a two-phase workflow: design your seed, then watch it evolve.
 │            ██                                 │ deaths Δ  -9   │ │
 │             ▀▀                                │                │ │
 │   ▄▄▄                                         │ population     │ │
-│  ▀   ▀                                        │ █▇▄▇█▇█▇▆▅▆▃▅▄ │ │
+│  ▀   ▀                                        │ ▄▄▄▄██████▄▄▄▄ │ │
 │                                               ╰────────────────╯ │
 │                   space pause · +/- speed · e edit · ? help · q  │
 ╰──────────────────────────────────────────────────────────────────╯
