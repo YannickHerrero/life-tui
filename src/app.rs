@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use std::{fs, io};
+use std::fs;
 
 use anyhow::{Context, Result, anyhow};
 use rand::Rng;
@@ -287,7 +287,7 @@ fn newest_rle(dir: &std::path::Path) -> Result<Option<PathBuf>> {
     }
     let mut newest: Option<(std::time::SystemTime, PathBuf)> = None;
     for entry in fs::read_dir(dir).with_context(|| format!("read {}", dir.display()))? {
-        let entry = entry.map_err(io::Error::from)?;
+        let entry = entry?;
         let path = entry.path();
         if path.extension().and_then(|s| s.to_str()) != Some("rle") {
             continue;
