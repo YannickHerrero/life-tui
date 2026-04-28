@@ -190,9 +190,18 @@ fn render_population_sparkline(frame: &mut Frame, area: Rect, app: &App) {
 
 pub fn render_footer(frame: &mut Frame, area: Rect, app: &App) {
     let dim = Style::default().add_modifier(Modifier::DIM);
+    let bold = Style::default().add_modifier(Modifier::BOLD);
+    if let Some(toast) = app.current_toast() {
+        let text = format!(" {toast} ");
+        frame.render_widget(
+            Paragraph::new(text).style(bold).alignment(Alignment::Center),
+            area,
+        );
+        return;
+    }
     let text = match app.phase {
         Phase::Edit => {
-            " hjkl move · space toggle · 1-5 patterns · r rand · c clear · enter → run · q "
+            " hjkl move · space toggle · 1-5 stamp · r rand · c clear · w save · L load · enter run · q "
         }
         Phase::Run => match app.paused {
             true => " space resume · s step · +/- speed · e edit · q quit ",

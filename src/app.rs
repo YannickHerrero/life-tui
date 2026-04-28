@@ -1,16 +1,21 @@
 use std::collections::VecDeque;
-use std::time::{Duration, Instant};
+use std::path::PathBuf;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::{fs, io};
 
+use anyhow::{Context, Result, anyhow};
 use rand::Rng;
 
 use crate::grid::{Grid, StepStats};
 use crate::patterns::Pattern;
 use crate::phase::Phase;
+use crate::rle;
 
 pub const MIN_SPEED: u32 = 1;
 pub const MAX_SPEED: u32 = 60;
 pub const DEFAULT_SPEED: u32 = 10;
 pub const HISTORY_LEN: usize = 240;
+pub const TOAST_TTL: Duration = Duration::from_millis(2200);
 
 pub struct App {
     pub grid: Grid,
@@ -23,6 +28,7 @@ pub struct App {
     pub paused: bool,
     pub population_history: VecDeque<u64>,
     pub paint_state: Option<bool>,
+    pub toast: Option<(String, Instant)>,
     last_tick: Instant,
     quit: bool,
 }
@@ -40,6 +46,7 @@ impl App {
             paused: false,
             population_history: VecDeque::with_capacity(HISTORY_LEN),
             paint_state: None,
+            toast: None,
             last_tick: Instant::now(),
             quit: false,
         }
@@ -170,7 +177,81 @@ impl App {
         }
     }
 
-    /// How long until the next tick should fire (used to size the event poll window).
+    pub fn current_toast(&self) -> Option<&str> {
+        match &self.toast {
+            Some((msg, t)) if t.elapsed() < TOAST_TTL => Some(msg.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn set_toast(&mut self, msg: impl Into<String>) {
+        self.toast = Some((msg.into(), Instant::now()));
+    }
+
+    pub fn save_pattern(&mut self) {
+        match self.try_save() {
+            Ok(path) => self.set_toast(format!(
+                "saved → {}",
+                path.file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("(unknown)")
+            )),
+            Err(err) => self.set_toast(format!("save failed: {err}")),
+        }
+    }
+
+    pub fn load_latest_pattern(&mut self) {
+        match self.try_load_latest() {
+            Ok(name) => self.set_toast(format!("loaded ← {name}")),
+            Err(err) => self.set_toast(format!("load failed: {err}")),
+        }
+    }
+
+    fn try_save(&self) -> Result<PathBuf> {
+        let dir = saves_dir()?;
+        fs::create_dir_all(&dir)
+            .with_context(|| format!("create saves dir {}", dir.display()))?;
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .context("system clock before epoch")?
+            .as_secs();
+        let path = dir.join(format!("{ts}.rle"));
+        let body = rle::encode_grid(&self.grid);
+        fs::write(&path, body).with_context(|| format!("write {}", path.display()))?;
+        Ok(path)
+    }
+
+    fn try_load_latest(&mut self) -> Result<String> {
+        let dir = saves_dir()?;
+        let entry = newest_rle(&dir)?
+            .ok_or_else(|| anyhow!("no saved patterns in {}", dir.display()))?;
+        let body = fs::read_to_string(&entry)
+            .with_context(|| format!("read {}", entry.display()))?;
+        let cells = rle::decode(&body)?;
+        if cells.is_empty() {
+            return Err(anyhow!("pattern is empty"));
+        }
+        // bounding box of the loaded cells
+        let max_x = cells.iter().map(|(x, _)| *x).max().unwrap_or(0);
+        let max_y = cells.iter().map(|(_, y)| *y).max().unwrap_or(0);
+        let pw = max_x + 1;
+        let ph = max_y + 1;
+        let w = self.grid.width() as i32;
+        let h = self.grid.height() as i32;
+        let ox = self.cursor_x as i32 - pw / 2;
+        let oy = self.cursor_y as i32 - ph / 2;
+        for (cx, cy) in cells {
+            let x = (ox + cx).rem_euclid(w) as usize;
+            let y = (oy + cy).rem_euclid(h) as usize;
+            self.grid.set(x, y, true);
+        }
+        Ok(entry
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("?")
+            .to_string())
+    }
+
     pub fn time_until_next_tick(&self) -> Duration {
         if self.phase != Phase::Run || self.paused {
             return Duration::from_millis(50);
@@ -179,4 +260,34 @@ impl App {
         let elapsed = self.last_tick.elapsed();
         period.saturating_sub(elapsed)
     }
+}
+
+fn saves_dir() -> Result<PathBuf> {
+    let base = std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")))
+        .ok_or_else(|| anyhow!("HOME not set"))?;
+    Ok(base.join("life-tui").join("saves"))
+}
+
+fn newest_rle(dir: &std::path::Path) -> Result<Option<PathBuf>> {
+    if !dir.exists() {
+        return Ok(None);
+    }
+    let mut newest: Option<(std::time::SystemTime, PathBuf)> = None;
+    for entry in fs::read_dir(dir).with_context(|| format!("read {}", dir.display()))? {
+        let entry = entry.map_err(io::Error::from)?;
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("rle") {
+            continue;
+        }
+        let modified = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .unwrap_or(UNIX_EPOCH);
+        if newest.as_ref().map(|(t, _)| modified > *t).unwrap_or(true) {
+            newest = Some((modified, path));
+        }
+    }
+    Ok(newest.map(|(_, p)| p))
 }

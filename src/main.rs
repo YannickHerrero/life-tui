@@ -119,6 +119,8 @@ fn handle_key(app: &mut App, code: KeyCode) {
                         app.stamp_pattern(&patterns::GOSPER_GLIDER_GUN)
                     }
                     (Phase::Edit, KeyCode::Char('5')) => app.stamp_pattern(&patterns::LWSS),
+                    (Phase::Edit, KeyCode::Char('w')) => app.save_pattern(),
+                    (Phase::Edit, KeyCode::Char('L')) => app.load_latest_pattern(),
                     (Phase::Edit, KeyCode::Enter) => app.start_run(),
                     (Phase::Run, KeyCode::Char('e')) => app.back_to_edit(),
                     (Phase::Run, KeyCode::Char(' ')) => app.toggle_pause(),
