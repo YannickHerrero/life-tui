@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
+use rand::Rng;
+
 use crate::grid::{Grid, StepStats};
 use crate::phase::Phase;
 
@@ -68,6 +70,21 @@ impl App {
 
     pub fn toggle_at_cursor(&mut self) {
         self.grid.toggle(self.cursor_x, self.cursor_y);
+    }
+
+    pub fn clear_grid(&mut self) {
+        self.grid.clear();
+    }
+
+    pub fn random_fill(&mut self, density: f32) {
+        let mut rng = rand::thread_rng();
+        let w = self.grid.width();
+        let h = self.grid.height();
+        for y in 0..h {
+            for x in 0..w {
+                self.grid.set(x, y, rng.r#gen::<f32>() < density);
+            }
+        }
     }
 
     pub fn start_run(&mut self) {

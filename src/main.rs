@@ -85,6 +85,8 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
                     (Phase::Edit, KeyCode::Up | KeyCode::Char('k')) => app.move_cursor(0, -1),
                     (Phase::Edit, KeyCode::Down | KeyCode::Char('j')) => app.move_cursor(0, 1),
                     (Phase::Edit, KeyCode::Char(' ')) => app.toggle_at_cursor(),
+                    (Phase::Edit, KeyCode::Char('c')) => app.clear_grid(),
+                    (Phase::Edit, KeyCode::Char('r')) => app.random_fill(0.25),
                     (Phase::Edit, KeyCode::Enter) => app.start_run(),
                     (Phase::Run, KeyCode::Char('e')) => app.back_to_edit(),
                     (Phase::Run, KeyCode::Char(' ')) => app.toggle_pause(),

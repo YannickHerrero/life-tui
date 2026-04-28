@@ -191,7 +191,9 @@ fn render_population_sparkline(frame: &mut Frame, area: Rect, app: &App) {
 pub fn render_footer(frame: &mut Frame, area: Rect, app: &App) {
     let dim = Style::default().add_modifier(Modifier::DIM);
     let text = match app.phase {
-        Phase::Edit => " arrows/hjkl move · space toggle · enter → run · q quit ",
+        Phase::Edit => {
+            " hjkl move · space toggle · r random · c clear · enter → run · q quit "
+        }
         Phase::Run => match app.paused {
             true => " space resume · s step · +/- speed · e edit · q quit ",
             false => " space pause · +/- speed · e edit · q quit ",
