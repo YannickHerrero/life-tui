@@ -12,6 +12,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::widgets::{Block, Borders};
 
 mod app;
+mod grid;
 
 use app::App;
 
