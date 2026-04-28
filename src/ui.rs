@@ -1,7 +1,7 @@
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::style::{Modifier, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Sparkline};
 
@@ -81,26 +81,24 @@ fn draw_grid(buf: &mut Buffer, area: Rect, grid: &Grid, cursor: Option<(usize, u
             let cursor_top = matches!(cursor, Some((cx, cy)) if cx == x && cy == gy_top);
             let cursor_bot = matches!(cursor, Some((cx, cy)) if cx == x && cy == gy_bot);
 
-            // The cursor's half flips its state and the whole terminal cell is
-            // REVERSED, so every up/down step moves a visible half-block — the
-            // cursor's half always inverts relative to a non-cursor cell.
-            let (top_disp, bot_disp, reversed) = if cursor_top {
-                (!top, bot, true)
-            } else if cursor_bot {
-                (top, !bot, true)
-            } else {
-                (top, bot, false)
-            };
-            let glyph = match (top_disp, bot_disp) {
-                (false, false) => ' ',
-                (true, false) => '▀',
-                (false, true) => '▄',
-                (true, true) => '█',
-            };
-            let style = if reversed {
-                Style::default().add_modifier(Modifier::REVERSED)
-            } else {
-                Style::default()
+            // Render glyph so that fg paints one half and bg paints the other.
+            // For cursor cells, paint the cursor's half with Color::Yellow and
+            // keep the other half showing the actual cell state. This way every
+            // up/down step moves a visible half-block to the correct half.
+            let (glyph, style) = match (cursor_top, cursor_bot) {
+                (true, _) if bot => ('▄', Style::default().fg(Color::Reset).bg(Color::Yellow)),
+                (true, _) => ('▀', Style::default().fg(Color::Yellow).bg(Color::Reset)),
+                (_, true) if top => ('▀', Style::default().fg(Color::Reset).bg(Color::Yellow)),
+                (_, true) => ('▄', Style::default().fg(Color::Yellow).bg(Color::Reset)),
+                _ => {
+                    let g = match (top, bot) {
+                        (false, false) => ' ',
+                        (true, false) => '▀',
+                        (false, true) => '▄',
+                        (true, true) => '█',
+                    };
+                    (g, Style::default())
+                }
             };
 
             if let Some(cell) = buf.cell_mut((area.x + tx, area.y + ty)) {
